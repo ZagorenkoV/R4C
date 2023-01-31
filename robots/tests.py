@@ -1,7 +1,15 @@
+import pandas as pd
+
 from django.urls import reverse
+from django.test import RequestFactory, TestCase
+from django.utils import timezone
+
+from datetime import timedelta
+
 from rest_framework import status
 from rest_framework.test import APITestCase
 from .models import Robot
+from .views import RobotReport
 from .serializers import RobotSerializer
 
 class RobotCreateTestCase(APITestCase):
@@ -32,3 +40,25 @@ class RobotCreateTestCase(APITestCase):
         response = self.client.post(url, data=invalid_data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Robot.objects.count(), 0)
+
+class RobotReportTestCase(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+    def test_robot_report(self):    
+        request = self.factory.get('/robot-report/')
+        robot1 = Robot.objects.create(
+            model='R1', version='D2', created=timezone.now()
+        )
+        robot2 = Robot.objects.create(
+            model='R1', version='D3', created=timezone.now() - timedelta(days=8)
+        )
+        response = RobotReport.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response['Content-Disposition'], 'attachment; filename=robot_report.xlsx')
+        self.assertEqual(response['Content-Type'], 'application/vnd.ms-excel')
+        
+        df = pd.read_excel(response.content, sheet_name='R1')
+        self.assertEqual(len(df), 1)
+        self.assertEqual(df.loc[0]['Model'], 'R1')
+        self.assertEqual(df.loc[0]['Version'], 'D2')
+        self.assertEqual(df.loc[0]['Total'], None)
