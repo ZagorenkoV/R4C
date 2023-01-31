@@ -1,0 +1,16 @@
+{% extends 'R4C/layout.html' %}
+{% block title %}Форма по заказу робота{% endblock %}
+
+{% block content %}
+    <div class="features">
+        <h1>Форма по заказу робота</h1>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.customer }}<br>
+            {{ form.robot_serial }}<br>
+            <span>{{ error }}</span>>
+            <button class="btn btn-success" type="submit">Оставить заказ</button>
+        </form>
+    </div>
+
+{% endblock %}
